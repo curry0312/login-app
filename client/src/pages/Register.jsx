@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import avator from "../assets/avator.png";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -6,6 +5,10 @@ import * as yup from "yup";
 import { useEffect, useState } from "react";
 import convertToBase64 from "../utility/convert";
 import Query from "../components/Query";
+import { registerUser } from "../utility/axios";
+import InputBox from "../components/InputBox";
+import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 const schema = yup.object().shape({
   email: yup.string().email().required("Email Required!"),
@@ -17,28 +20,42 @@ const schema = yup.object().shape({
 });
 
 function Register() {
-  const [selectedFile, setSelectedFile] = useState();
-
-  useEffect(() => {
-    console.log(selectedFile);
-  }, [selectedFile]);
+  const navigate = useNavigate();
+  const [selectedFile, setSelectedFile] = useState("");
 
   const {
     register,
     handleSubmit,
-    reset,
     formState: { errors },
   } = useForm({
     resolver: yupResolver(schema),
   });
-  function onSubmit(data) {
-    console.log(data);
-    reset();
+
+  async function onSubmit(formData) {
+    console.log("formData:", formData);
+    const newFormData = Object.assign(formData, { profile: selectedFile });
+    let resPromise = registerUser(newFormData);
+    console.log(resPromise);
+    toast.promise(resPromise, {
+      loading: "Creating...",
+      success: "You are ours member now!",
+      error: "You are already ours member!",
+    });
+    resPromise
+      .then(({ data, status }) => {
+        console.log({ data, status });
+        setTimeout(() => {
+          navigate("/");
+        }, 2000);
+      })
+      .catch((error) => {
+        console.log(error);
+      });
   }
 
-  async function onUpload(e){
-    const base64 = await convertToBase64(e.target.files[0])
-    setSelectedFile(base64)
+  async function onUpload(e) {
+    const base64 = await convertToBase64(e.target.files[0]);
+    setSelectedFile(base64);
   }
 
   return (
@@ -54,7 +71,10 @@ function Register() {
 
           <form className="py-1 space-y-3" onSubmit={handleSubmit(onSubmit)}>
             <div className="flex flex-col justify-center items-center py-4">
-              <label htmlFor="avator" className="flex justify-center items-center bg-gray-200 w-[210px] h-[210px] rounded-full cursor-pointer hover:bg-red-600">
+              <label
+                htmlFor="avator"
+                className="flex justify-center items-center bg-gray-200 w-[210px] h-[210px] rounded-full cursor-pointer hover:bg-red-600"
+              >
                 <img
                   className="w-[200px] h-[200px] object-cover rounded-full"
                   src={selectedFile ? selectedFile : avator}
@@ -62,42 +82,38 @@ function Register() {
                 />
               </label>
               <input
-                className="hidden"
+                className="w-0"
                 id="avator"
                 type="file"
-                {...register("file")}
                 onChange={onUpload}
               />
             </div>
             <div className="textbox flex flex-col items-center gap-3">
-              <input
-                {...register("email")}
-                className="px-4 py-3 rounded-md bg-gray-50 text-black w-full outline-none"
+              <InputBox
                 type="text"
                 placeholder="Email"
+                register={register("email")}
+                errors={errors.email}
               />
-              <p className="text-red-500">{errors.email?.message}</p>
-              <input
-                {...register("username")}
-                className="px-4 py-3 rounded-md bg-gray-50 text-black w-full outline-none"
+
+              <InputBox
                 type="text"
                 placeholder="Username"
+                register={register("username")}
+                errors={errors.username}
               />
-              <p className="text-red-500">{errors.username?.message}</p>
-              <input
-                {...register("password")}
-                className="px-4 py-3 rounded-md bg-gray-50 text-black w-full outline-none"
+              <InputBox
                 type="text"
                 placeholder="Password"
+                register={register("password")}
+                errors={errors.password}
               />
-              <p className="text-red-500">{errors.password?.message}</p>
-              <input
-                {...register("confirm_password")}
-                className="px-4 py-3 rounded-md bg-gray-50 text-black w-full outline-none"
+              <InputBox
                 type="text"
                 placeholder="Repeat Password"
+                register={register("confirmPassword")}
+                errors={errors.confirmPassword}
               />
-              <p className="text-red-500">{errors.confirmPassword?.message}</p>
               <button
                 className="px-4 py-3 rounded-md bg-indigo-500 text-white w-full hover:bg-purple-500"
                 type="submit"

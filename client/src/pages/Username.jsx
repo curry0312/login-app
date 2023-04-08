@@ -1,21 +1,51 @@
-import Query from '../components/Query'
+import Query from "../components/Query";
 import avator from "../assets/avator.png";
-import { useForm } from 'react-hook-form'
-import { yupResolver } from '@hookform/resolvers/yup';
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
+import { getUser } from "../utility/axios";
+import { useAuthStore } from "../store/store";
+import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 const schema = yup.object().shape({
-  username: yup.string().required("Username Required!")
-})
+  username: yup.string().required("Username Required!"),
+});
 
 function Username() {
-  const {register, handleSubmit, reset, formState:{errors}} = useForm({
-    resolver: yupResolver(schema)
-  })
-  function onSubmit(data){
-    console.log(data)
-    reset()
+  const [isUserValid, setIsUserValid] = useState("");
+  const navigate = useNavigate();
+  const setUsername = useAuthStore((state) => state.setUsername);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(schema),
+  });
+
+
+
+  async function onSubmit(formData) {
+    setUsername(formData.username);
+    localStorage.setItem('username',JSON.stringify(formData.username))
+    const resPromise = getUser(formData.username);
+    console.log(resPromise);
+    resPromise
+      .then(({ data, status }) => {
+        console.log({data, status});
+        if (status === 201) {
+          setIsUserValid(true);
+          navigate("/password");
+        }
+      })
+      .catch((error) => {
+        console.log(error)
+        setIsUserValid(false);
+      });
   }
+
   return (
     <div className="container mx-auto font-Ubuntu">
       <div className="flex justify-center items-center h-screen">
@@ -37,12 +67,15 @@ function Username() {
             </div>
             <div className="textbox flex flex-col items-center gap-3">
               <input
-                {...register('username')}
+                {...register("username")}
                 className="px-4 py-3 rounded-md bg-gray-50 text-black w-full outline-none"
                 type="text"
                 placeholder="Username"
               />
-              <p className="text-red-500">{errors.username?.message}</p>
+              <p className="text-red-500">
+                {errors.username?.message}
+                {isUserValid === false && "User not Found"}
+              </p>
               <button
                 className="px-4 py-3 rounded-md bg-indigo-500 text-white w-full hover:bg-purple-500"
                 type="submit"
@@ -50,7 +83,11 @@ function Username() {
                 Let's go
               </button>
             </div>
-            <Query query="Not a member yet?" linkText="register" link="/register" />
+            <Query
+              query="Not a member yet?"
+              linkText="register"
+              link="/register"
+            />
           </form>
         </div>
       </div>

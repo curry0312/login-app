@@ -16,11 +16,6 @@ app.disable("x-powered-by");
 
 const port = 8080;
 
-/*HTTP GET Request*/
-app.get("/", (req, res) => {
-  res.status(201).json("Home get request");
-});
-
 app.use("/api", router);
 
 async function start() {

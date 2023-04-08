@@ -6,14 +6,14 @@ import UserModel from "../model/User.model.js";
 
 dotenv.config();
 
-//POST
+/*POST: rigister user*/
 export async function register(req, res) {
   const { email, username, password, profile } = req.body;
   //check if the username exist
   function checkUsername() {
     return new Promise(async (resolve, reject) => {
       const usernameInModel = await UserModel.findOne({ username: username });
-      if (usernameInModel) reject(new Error("The username is already exist"));
+      if (usernameInModel) reject("The username is already exist");
       resolve();
     });
   }
@@ -21,7 +21,7 @@ export async function register(req, res) {
   function checkEmail() {
     return new Promise(async (resolve, reject) => {
       const emailInModel = await UserModel.findOne({ email: email });
-      if (emailInModel) reject(new Error("The email is already exist"));
+      if (emailInModel) reject("The email is already exist");
       resolve();
     });
   }
@@ -39,22 +39,23 @@ export async function register(req, res) {
               username,
               password: hashedPassword,
               email,
-              profile: profile || "",
+              profile,
             });
             //save user in memory
             user
               .save()
               .then((result) =>
-                res
-                  .status(201)
-                  .send({ message: "Create User successfully", result })
+                res.status(201).send({
+                  user: result,
+                  message: "Create User successfully",
+                })
               )
               .catch((error) =>
                 res.status(500).send({ error, msg: "Failed to save in db" })
               );
           })
           .catch((error) => {
-            return res.status(500).send(error);
+            return res.status(500).send({error, msg: "Failed to hash password"});
           });
       }
     })
@@ -62,33 +63,35 @@ export async function register(req, res) {
       return res.status(500).send({ error });
     });
 }
-//POST
+/*POST: login user*/
 export async function login(req, res) {
   const { username, password } = req.body;
   try {
     const user = await UserModel.findOne({ username: username });
     const passwordIsSame = await bcrypt.compare(password, user.password);
-    if (!passwordIsSame)
+    if (!passwordIsSame) {
       return res.status(404).send({ msg: "user's password is not correct" });
-    const token = jwt.sign(
-      {
-        userId: user._id,
-        username: user.username,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: 86400 }
-    );
-    console.log(token);
-    return res.status(201).send({
-      msg: "found the user, login successfully....!",
-      user: user,
-      token: token,
-    });
-  } catch (err) {
-    res.status(500).send({ err });
+    } else {
+      const token = jwt.sign(
+        {
+          userId: user._id,
+          username: user.username,
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: 86400 }
+      );
+      console.log(token);
+      return res.status(201).send({
+        msg: "found the user, login successfully....!",
+        user: user,
+        token: token,
+      });
+    }
+  } catch (error) {
+    res.status(500).send({ error });
   }
 }
-//GET
+/*GET: get user*/
 export async function getUser(req, res) {
   const { username } = req.params;
   try {
@@ -98,14 +101,15 @@ export async function getUser(req, res) {
     const { password, ...rest } = Object.assign({}, user.toJSON());
     return res
       .status(201)
-      .send({ msg: "Successfully find the user", user: rest });
+      .send({ user: rest, msg: "Successfully find the user" });
   } catch (error) {
-    return res.status(404).send({ error: "Can't find user's data" });
+    return res.status(404).send({ error });
   }
 }
-//PUT
+/*PUT: update user*/
 export async function updateUser(req, res) {
   try {
+    //get from verifyJWTToken middleware
     const { userId } = req.user;
     if (userId) {
       const body = req.body;
@@ -118,16 +122,16 @@ export async function updateUser(req, res) {
     return res.status(401).send({ error });
   }
 }
-//GET
+/*GET: get OTP*/
 export async function generateOTP(req, res) {
-  req.app.locals.OTP = await otpGenerator.generate(6, {
+  req.app.locals.OTP = otpGenerator.generate(6, {
     lowerCaseAlphabets: false,
     upperCaseAlphabets: false,
     specialChars: false,
   });
   res.status(201).send({ OTP: req.app.locals.OTP });
 }
-//GET
+/*GET: verify OTP */
 export async function verifyOTP(req, res) {
   const { OTP } = req.query;
   if (parseInt(OTP) === parseInt(req.app.locals.OTP)) {
@@ -137,7 +141,7 @@ export async function verifyOTP(req, res) {
   }
   return res.status(400).send({ error: "Invalid OTP" });
 }
-//GET
+/*GET: gO to reset Session */
 export async function createResetSession(req, res) {
   if (req.app.locals.resetSession) {
     req.app.locals.resetSession = false; //allow access to this route only once
@@ -154,7 +158,7 @@ export async function resetPassword(req, res) {
     const user = await UserModel.findOne({ username });
     bcrypt
       .hash(password, 10)
-      .then( async (hashedPassword) => {
+      .then(async (hashedPassword) => {
         const result = await UserModel.updateOne(
           { username: user.username },
           { password: hashedPassword }
