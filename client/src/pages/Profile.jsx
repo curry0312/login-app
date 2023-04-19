@@ -5,7 +5,7 @@ import * as yup from "yup";
 import InputBox from "../components/InputBox";
 import { useAuthStore } from "../store/store";
 import useFetch from "../hooks/useFetch";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import convertToBase64 from "../utility/convert";
 import { updateUser } from "../utility/axios";
 import toast from "react-hot-toast";
@@ -21,28 +21,43 @@ const schema = yup.object().shape({
 
 function Profile() {
   const [selectedFile, setSelectedFile] = useState("");
-  const  username  = JSON.parse(localStorage.getItem("username")) || useAuthStore((state) => state.auth.username);
+  const username =
+    JSON.parse(localStorage.getItem("username")) ||
+    useAuthStore((state) => state.auth.username);
   const [{ isLoading, apiData, serverError, status }] = useFetch(
     `/user/${username}`
   );
-  // console.log(
-  //   "isLoading:",
-  //   isLoading,
-  //   "apiData:",
-  //   apiData,
-  //   "status:",
-  //   status,
-  //   "serverError:",
-  //   serverError
-  // );
+  console.log(
+    "isLoading:",
+    isLoading,
+    "apiData:",
+    apiData,
+    "status:",
+    status,
+    "serverError:",
+    serverError
+  );
 
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm({
     resolver: yupResolver(schema),
   });
+
+  useEffect(() => {
+    reset({
+      email: apiData?.user?.email,
+      username: apiData?.user?.username,
+      firstName: apiData?.user?.firstName || "",
+      lastName: apiData?.user?.lastName || "",
+      phoneNumber: apiData?.user?.phoneNumber || "",
+      address: apiData?.user?.address || "",
+    });
+  }, [apiData]);
+
   function onSubmit(formData) {
     const resPromise = updateUser({
       ...formData,
@@ -108,42 +123,36 @@ function Profile() {
                 placeholder="Email"
                 register={register("email")}
                 errors={errors.email}
-                defaultValue={apiData?.user?.email}
               />
               <InputBox
                 type="text"
                 placeholder="Username"
                 register={register("username")}
                 errors={errors.username}
-                defaultValue={apiData?.user?.username}
               />
               <InputBox
                 type="text"
                 placeholder="First Name"
                 register={register("firstName")}
-                errors={errors.firstname}
-                defaultValue={apiData?.user?.firstName || ""}
+                errors={errors.firstName}
               />
               <InputBox
                 type="text"
                 placeholder="Last Name"
                 register={register("lastName")}
-                errors={errors.lastname}
-                defaultValue={apiData?.user?.lastName || ""}
+                errors={errors.lastName}
               />
               <InputBox
                 type="text"
                 placeholder="Phone Number"
                 register={register("phoneNumber")}
-                errors={errors.phone_number}
-                defaultValue={apiData?.user?.phoneNumber || ""}
+                errors={errors.phoneNumber}
               />
               <InputBox
                 type="text"
                 placeholder="Address"
                 register={register("address")}
                 errors={errors.address}
-                defaultValue={apiData?.user?.address || ""}
               />
               <button
                 className="col-span-2 px-4 py-3 rounded-md bg-indigo-500 text-white w-full hover:bg-purple-500"

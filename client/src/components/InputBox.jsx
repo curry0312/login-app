@@ -1,6 +1,6 @@
 import React from "react";
 
-export default function InputBox({type="text",placeholder,register, errors, defaultValue}) {
+export default function InputBox({type="text", placeholder, register, errors, defaultValue}) {
   return (
     <div className="w-full">
       <input
