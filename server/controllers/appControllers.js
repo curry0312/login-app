@@ -3,6 +3,8 @@ import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import otpGenerator from "otp-generator";
 import UserModel from "../model/User.model.js";
+import nodeMailer from "nodemailer";
+import Mailgen from "mailgen";
 
 dotenv.config();
 
@@ -44,18 +46,63 @@ export async function register(req, res) {
             //save user in memory
             user
               .save()
-              .then((result) =>
-                res.status(201).send({
-                  user: result,
-                  message: "Create User successfully",
-                })
-              )
+              .then((result) => {
+                //send gmail to the user
+                let config = {
+                  service: "gmail",
+                  auth: {
+                    user: process.env.EMAIL,
+                    pass: process.env.PASSWORD,
+                  },
+                };
+                let transporter = nodeMailer.createTransport(config);
+                let MailGenerator = new Mailgen({
+                  theme: "default",
+                  product: {
+                    name: "curry0312",
+                    link: "https://github.com/curry0312",
+                  },
+                });
+                let response = {
+                  body: {
+                    intro: "You have successfully registered!",
+                    outro: "If you have any questions, contact us!",
+                  },
+                };
+                let mail = MailGenerator.generate(response);
+                let message = {
+                  from: process.env.EMAIL,
+                  to: email,
+                  subject: "Register successfully",
+                  html: mail,
+                };
+                transporter
+                  .sendMail(message)
+                  .then(() => {
+                    return res.status(201).send({
+                      user: result,
+                      message:
+                        "Create User successfully, we have send an email to you",
+                    });
+                  })
+                  //catch error when failing sending email to the new user
+                  .catch((error) => {
+                    return res.status(500).send({
+                      error,
+                      message: "Something wrong with sending email",
+                    });
+                  });
+              })
+              //catch error when failing saving user.
               .catch((error) =>
                 res.status(500).send({ error, msg: "Failed to save in db" })
               );
           })
+          //catch error when failing hash password and create new model
           .catch((error) => {
-            return res.status(500).send({error, msg: "Failed to hash password"});
+            return res
+              .status(500)
+              .send({ error, msg: "Failed to hash password" });
           });
       }
     })
@@ -141,7 +188,7 @@ export async function verifyOTP(req, res) {
   }
   return res.status(400).send({ error: "Invalid OTP" });
 }
-/*GET: gO to reset Session */
+/*GET: go to reset Session */
 export async function createResetSession(req, res) {
   if (req.app.locals.resetSession) {
     req.app.locals.resetSession = false; //allow access to this route only once
