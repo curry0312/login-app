@@ -39,7 +39,7 @@ function Register() {
     toast.promise(resPromise, {
       loading: "Creating...",
       success: "You are ours member now!",
-      error: "You are already ours member!",
+      error: "Email or username are already used!",
     });
     resPromise
       .then(({ data, status }) => {

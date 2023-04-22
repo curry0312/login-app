@@ -28,18 +28,18 @@ export async function getUser(username) {
 /*Register function*/
 export async function registerUser(newUserData) {
   try {
+    //register user
     const { data, status } = await axios.post(
       "http://localhost:8080/api/register",
       newUserData
     );
-    // //send Mail
-    // let { username, email } = newUserData;
-    // if (status === 201)
-    //   await axios.post("/api/registerMail", {
-    //     username,
-    //     userEmail: email,
-    //     text: msg,
-    //   });
+    //send Mail
+    let { username, email } = newUserData;
+    if (status === 201)
+      await axios.post("http://localhost:8080/api/registerSendMail", {
+        username,
+        email,
+      });
     return Promise.resolve({ data, status });
   } catch (error) {
     return Promise.reject({ error });
@@ -69,9 +69,13 @@ export async function updateUser(userUpdateData) {
   try {
     //Get the JWT token from usere localstorge
     const token = JSON.parse(localStorage.getItem("token"));
-    const { data, status } = await axios.put("http://localhost:8080/api/updateuser", userUpdateData, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const { data, status } = await axios.put(
+      "http://localhost:8080/api/updateuser",
+      userUpdateData,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
     return Promise.resolve({ data, status });
   } catch (error) {
     return Promise.reject({ error });
@@ -84,26 +88,27 @@ export async function generateOTP(username) {
     const {
       data: { OTP },
       status,
-    } = await axios.get("/api/generateOTP", { params: username });
+    } = await axios.get(
+      `http://localhost:8080/api/generateOTP?username=${username}`
+    );
+    console.log(OTP);
 
-    // //send Mail with OTP
-    // if (status === 201) {
-    //   const {
-    //     data: { email },
-    //   } = await getUser({ username });
-
-    //   let text = `Your Password Reset OTP is ${OTP}, please verify it`;
-
-    //   await axios.post("/api/registerMail", {
-    //     username,
-    //     userEmail: email,
-    //     text,
-    //     subject: "Password Reset OTP",
-    //   });
-    // }
-    return Promise.resolve(OTP);
+    //send Mail with OTP
+    if (status === 201) {
+      const {
+        data: {
+          user: { email },
+        },
+      } = await axios.get(`http://localhost:8080/api/user/${username}`);
+      console.log(email);
+      await axios.post("http://localhost:8080/api/recoverPasswordMail", {
+        username,
+        email,
+        OTP,
+      });
+    }
   } catch (error) {
-    return Promise.reject({ error });
+    console.log(error);
   }
 }
 

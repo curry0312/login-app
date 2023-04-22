@@ -3,8 +3,6 @@ import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import otpGenerator from "otp-generator";
 import UserModel from "../model/User.model.js";
-import nodeMailer from "nodemailer";
-import Mailgen from "mailgen";
 
 dotenv.config();
 
@@ -12,26 +10,37 @@ dotenv.config();
 export async function register(req, res) {
   const { email, username, password, profile } = req.body;
   //check if the username exist
-  function checkUsername() {
-    return new Promise(async (resolve, reject) => {
-      const usernameInModel = await UserModel.findOne({ username: username });
-      if (usernameInModel) reject("The username is already exist");
-      resolve();
-    });
+  async function checkUsername() {
+    try {
+      const usernameInModel = await UserModel.findOne({ username });
+      if (!usernameInModel) {
+        return Promise.resolve();
+      } else {
+        return Promise.reject("The username is already exist");
+      }
+    } catch (error) {
+      console.log(error);
+    }
   }
+
   //check if the email exist
-  function checkEmail() {
-    return new Promise(async (resolve, reject) => {
-      const emailInModel = await UserModel.findOne({ email: email });
-      if (emailInModel) reject("The email is already exist");
-      resolve();
-    });
+  async function checkEmail() {
+    try {
+      const emailInModel = await UserModel.findOne({ email });
+      if (!emailInModel) {
+        Promise.resolve();
+      } else {
+        Promise.reject("The email is already exist");
+      }
+    } catch (error) {
+      console.log(error);
+    }
   }
 
   //When validation complete, invoke this
-  Promise.all([checkUsername, checkEmail])
+  await Promise.all([checkUsername, checkEmail])
     .then(() => {
-      console.log();
+      console.log("username and email is unique");
       if (password) {
         //translate password into hashed
         bcrypt
@@ -47,51 +56,7 @@ export async function register(req, res) {
             user
               .save()
               .then((result) => {
-                //send gmail to the user
-                let config = {
-                  service: "gmail",
-                  auth: {
-                    user: process.env.EMAIL,
-                    pass: process.env.PASSWORD,
-                  },
-                };
-                let transporter = nodeMailer.createTransport(config);
-                let MailGenerator = new Mailgen({
-                  theme: "default",
-                  product: {
-                    name: "curry0312",
-                    link: "https://github.com/curry0312",
-                  },
-                });
-                let response = {
-                  body: {
-                    intro: "You have successfully registered!",
-                    outro: "If you have any questions, contact us!",
-                  },
-                };
-                let mail = MailGenerator.generate(response);
-                let message = {
-                  from: process.env.EMAIL,
-                  to: email,
-                  subject: "Register successfully",
-                  html: mail,
-                };
-                transporter
-                  .sendMail(message)
-                  .then(() => {
-                    return res.status(201).send({
-                      user: result,
-                      message:
-                        "Create User successfully, we have send an email to you",
-                    });
-                  })
-                  //catch error when failing sending email to the new user
-                  .catch((error) => {
-                    return res.status(500).send({
-                      error,
-                      message: "Something wrong with sending email",
-                    });
-                  });
+                res.status(201).send({ result, msg: "register successfully" });
               })
               //catch error when failing saving user.
               .catch((error) =>

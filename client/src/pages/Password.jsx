@@ -5,7 +5,7 @@ import * as yup from "yup";
 import Query from "../components/Query";
 import useFetch from "../hooks/useFetch";
 import { useAuthStore } from "../store/store";
-import { loginUser } from "../utility/axios";
+import { generateOTP, loginUser } from "../utility/axios";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 
@@ -17,14 +17,6 @@ function Password() {
   const navigate = useNavigate();
   const username = JSON.parse(localStorage.getItem("username")) || useAuthStore((state) => state.auth.username);
   const [{ isLoading, apiData, serverError }] = useFetch(`/user/${username}`);
-  // console.log(
-  //   "isLoading:",
-  //   isLoading,
-  //   "apiData:",
-  //   apiData,
-  //   "serverError:",
-  //   serverError
-  // );
 
   const {
     register,
@@ -35,7 +27,6 @@ function Password() {
   });
 
   async function onSubmit({ password }) {
-    console.log("password", password);
     const resPromise = loginUser({ username, password });
     console.log(resPromise);
     toast.promise(resPromise, {
@@ -101,6 +92,7 @@ function Password() {
               query="Forget Password?"
               linkText="Recover"
               link="/recovery"
+              fn={()=>generateOTP(username)}
             />
           </form>
         </div>
