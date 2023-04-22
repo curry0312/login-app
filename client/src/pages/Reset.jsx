@@ -1,6 +1,11 @@
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
+import { useEffect } from "react";
+import { resetPassword } from "../utility/axios";
+import { useAuthStore } from "../store/store";
+import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 
 const schema = yup.object().shape({
   password: yup
@@ -14,6 +19,14 @@ const schema = yup.object().shape({
 });
 
 function Reset() {
+
+  const navigate = useNavigate()
+  const username = JSON.parse(localStorage.getItem('username')) || useAuthStore((state) => state.auth.username);
+
+  useEffect(()=>{
+    console.log('Reset')
+  },[])
+
   const {
     register,
     handleSubmit,
@@ -22,9 +35,21 @@ function Reset() {
   } = useForm({
     resolver: yupResolver(schema),
   });
-  function onSubmit(data) {
-    console.log(data);
-    reset()
+  function onSubmit({password}) {
+    console.log(password);
+    const resPromise = resetPassword({username, password})
+    toast.promise(resPromise,{
+      loading: "Processing....",
+      success: "Reset password successfully!",
+      error: "Failed to Reset password..."
+    })
+    resPromise.then(()=>{
+      setTimeout(()=>{
+        navigate("/")
+      },2000)
+    }).catch((error)=>{
+      console.log(error)
+    })
   }
   return (
     <div className="container mx-auto font-Ubuntu">

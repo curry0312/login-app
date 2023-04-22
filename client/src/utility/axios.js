@@ -114,21 +114,24 @@ export async function generateOTP(username) {
 
 export async function verifyOTP({ username, OTP }) {
   try {
-    const { data, status } = await axios.get("/api/verifyOTP", {
-      params: { username, OTP },
-    });
-    return { data, status };
+    const { data, status } = await axios.get(
+      `http://localhost:8080/api/verifyOTP?username=${username}&OTP=${OTP}`
+    );
+    return Promise.resolve({ data, status });
   } catch (error) {
     return Promise.reject({ error });
   }
 }
 
-export async function resetPassword({ username, newPassword }) {
+export async function resetPassword({ username, password }) {
   try {
-    const { data, status } = await axios.put("/api/resetPassword", {
-      username,
-      password: newPassword,
-    });
+    const { data, status } = await axios.put(
+      "http://localhost:8080/api/resetPassword",
+      {
+        username,
+        password,
+      }
+    );
     return Promise.resolve({ data, status });
   } catch (error) {
     return Promise.reject({ error });

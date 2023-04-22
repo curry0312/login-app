@@ -167,14 +167,10 @@ export async function resetPassword(req, res) {
     if (!req.app.locals.resetSession)
       res.status(440).send({ error: "session expired" });
     const { username, password } = req.body;
-    const user = await UserModel.findOne({ username });
     bcrypt
       .hash(password, 10)
       .then(async (hashedPassword) => {
-        const result = await UserModel.updateOne(
-          { username: user.username },
-          { password: hashedPassword }
-        );
+        const result = await UserModel.updateOne({ username },{ password: hashedPassword });
         req.app.locals.resetSession = false;
         res
           .status(201)

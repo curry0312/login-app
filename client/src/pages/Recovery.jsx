@@ -1,6 +1,31 @@
-
+import { useState } from "react";
+import { verifyOTP } from "../utility/axios";
+import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
+import { useAuthStore } from "../store/store";
 
 function Recovery() {
+  const [OTP, setOTP] = useState("");
+  const navigate = useNavigate();
+
+  const username = JSON.parse(localStorage.getItem('username')) || useAuthStore((state) => state.auth.username);
+
+  function onSubmit(e) {
+    e.preventDefault()
+    const resPromise = verifyOTP({username, OTP});
+    toast.promise(resPromise, {
+      loading: "Verifing...",
+      success: "Verify completely!",
+      error: "Invalid OTP...",
+    });
+    resPromise
+      .then(() => {
+        navigate("/reset");
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+  }
   return (
     <div className="container mx-auto font-Ubuntu">
       <div className="flex justify-center items-center h-screen">
@@ -12,14 +37,18 @@ function Recovery() {
             </span>
           </div>
 
-          <form className="">
+          <form onSubmit={onSubmit}>
             <div className="textbox flex flex-col items-center">
               <div className="w-full text-center">
-                <span className="text-sm text-gray-500">Enter 6 digits OTP</span>
+                <span className="text-sm text-gray-500">
+                  Enter 6 digits OTP
+                </span>
                 <input
                   className="px-4 py-3 rounded-md bg-gray-50 text-black w-full outline-none"
                   type="text"
                   placeholder="OTP"
+                  value={OTP}
+                  onChange={(e) => setOTP(e.target.value)}
                 />
               </div>
               <button
@@ -41,5 +70,3 @@ function Recovery() {
 }
 
 export default Recovery;
-
-
